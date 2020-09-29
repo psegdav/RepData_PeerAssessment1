@@ -1,25 +1,134 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Course Project 1"
+author: "psegdav"
+date: "25 September 2020"
+output: html_document
 ---
+##Loading and preprocessing the data
 
+```{r, echo=TRUE}
+data <- read.csv("activity.csv")
+names(data)
+summary(data)
+```
 
-## Loading and preprocessing the data
+##What is the mean total number of steps taken per day?
 
+### Histogram 
 
+```{r, echo=TRUE}
+dailysteps <- aggregate(steps~date, data, sum, na.rm=T)
+hist(dailysteps$steps, xlab="Steps per day", ylab="Frequency", main="Daily Steps Histogram", col=3)
+```
+###Mean and Median
 
-## What is mean total number of steps taken per day?
+```{r, echo=T}
+dailymeansteps <- mean(dailysteps$steps)
+head(dailymeansteps)
+```
 
-
+```{r, echo=T}
+dailymediansteps <- median(dailysteps$steps)
+dailymediansteps
+```
 
 ## What is the average daily activity pattern?
 
+###Time Plot
+```{r}
+steps_interval <- aggregate(steps~interval, data, mean, na.rm=T)
+head(steps_interval)
+plot(steps~interval, data=steps_interval, type="l", main="Time Series Plot", col=6)
+```
 
 
-## Imputing missing values
+### Interval with maximum steps
+```{r}
+MaxSteps <- steps_interval[which.max(steps_interval$steps),]$interval
+MaxSteps
+
+```
+
+##Imputing Missing Values
+### Total Missing Values
+```{r}
+missingvalues <- sum(is.na(data$steps))
+missingvalues
+```
+
+## Filling in missing values for interval
+
+```{r}
+mean_steps_interval <- function(interval){
+    steps_interval[steps_interval$interval == interval,]$steps
+}
+```
+
+### New dataset with missing data filled in
+
+```{r}
+nadata <- data
+  for(i in 1:nrow(nadata)){
+    if(is.na(nadata[i,]$steps)){
+      nadata[i,]$steps <- mean_steps_interval(nadata[i,]$interval)}
+  }
+
+head(nadata)
+```
+
+###Histogram of daily steps, report mean and median total number of daily steps. 
+```{r, echo=TRUE}
+nasteps_day <- aggregate(steps ~ date, nadata, sum, na.rm=TRUE)
+head(nasteps_day)
+
+hist(nasteps_day$steps, xlab="Steps per day", ylab="Frequency", main="Daily Steps Histogram No NA Data", col=2)
+```
+
+```{r}
+nadailymeansteps <- mean(nadata$steps)
+nadailymeansteps
+```
+
+```{r}
+nadailymediansteps <- median(nadata$steps)
+nadailymeansteps
+```
+
+###Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+#### The values do differ. The values got lower, imputting missing data did alter significantly the data.The mean and median, both changed into 37.3826. 
+
+##Are there differences in activity patterns between weekdays and weekends?
+```{r}
+nadata$date <- as.Date(strptime(nadata$date, format="%Y-%m-%d"))
+
+nadata$day <- weekdays(nadata$date)
+for (i in 1:nrow(nadata)){
+  if(nadata[i,]$day %in% c("Saturday", "Sunday"))
+    nadata[i,]$day <- "Weekend"
+    else
+       nadata[i,]$day <- "Weekday"}
+
+nadailysteps <- aggregate(nadata$steps ~ nadata$interval + nadata$day, nadata, mean)
+head(nadailysteps)
+```
+
+```{r}
+names(nadailysteps) <- c("interval", "day", "steps")
+head(nadailysteps)
+
+library(lattice)
+xyplot(steps~interval | day, nadailysteps, type="h",  layout=c(2,1), xlab = "Interval", ylab="Number of steps")
+
+
+```
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
+
+
+
+
+
+
+
